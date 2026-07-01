@@ -1,0 +1,27 @@
+{
+  "name": "campus-fileshare-portal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A realistic single-page university portal that embeds the p2p-portal-drop SDK for LAN peer-to-peer file sharing between students and staff.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "p2p-portal-drop": "^0.1.0",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}
