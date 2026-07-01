@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 
-/** Renders `value` as a QR code image. A phone running WrapDrive can scan it. */
+/** Renders `value` as a QR code image. A compatible mobile app can scan it to join. */
 export function QrImage({ value, size = 220 }: { value: string; size?: number }): JSX.Element {
   const [dataUrl, setDataUrl] = useState<string>('');
   const [error, setError] = useState<string>('');

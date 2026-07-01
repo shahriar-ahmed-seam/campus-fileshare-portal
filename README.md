@@ -1,72 +1,120 @@
 # Campus File Share — University Portal
 
-A realistic single-page **university student portal** that embeds the
-[`p2p-portal-drop`](https://www.npmjs.com/package/p2p-portal-drop) SDK to let
-students and staff share files **directly, peer-to-peer, over the campus
-network** — no cloud, no uploads, nothing stored on a server.
+A realistic single-page **university student portal** with built-in
+**peer-to-peer file sharing**. Students and staff share files **directly between
+their devices over the campus network** — nothing is uploaded to or stored on a
+server.
 
-This is a reference integration: it installs the SDK from npm and wires it into
-a normal React app, exactly how a real portal would.
+This repository is a **reference integration**: it shows, with real working
+code, how to embed the [`p2p-portal-drop`](https://www.npmjs.com/package/p2p-portal-drop)
+file-sharing SDK into a production-style web app.
 
-![stack](https://img.shields.io/badge/Vite-React-blue) ![sdk](https://img.shields.io/badge/p2p--portal--drop-embedded-0b3d2e)
+Built with **Vite + React + TypeScript**.
 
-## How the SDK is integrated
+---
 
-```
+## About the `p2p-portal-drop` SDK
+
+`p2p-portal-drop` is a framework-agnostic, LAN-only peer-to-peer file-sharing SDK
+that **we built and published to npm**. A web app pairs two devices (via a QR
+code or a short code) and streams files directly between them using the
+browser's native WebRTC — file bytes never touch a server.
+
+This portal is the reference showing how a real product integrates it. The SDK
+is consumed like any other dependency:
+
+```bash
 npm install p2p-portal-drop
 ```
 
-- `src/fileshare/useFileShare.ts` — a React hook that owns one `FileShareClient`,
-  wires the SDK's typed lifecycle events into state, and exposes
-  host / joinByCode / send / accept / reject / leave.
-- `src/fileshare/FileSharePanel.tsx` — the UI (share via QR + code, join by code,
-  peer list, file picker, live progress, incoming-file prompts).
-- `src/pairing.ts` — builds the QR/pairing payload the WrapDrive apps understand.
+**Where the integration lives in this repo:**
 
-The rest (`App.tsx`, `styles.css`) is just the portal chrome around it.
+| File | Role |
+| --- | --- |
+| [`src/fileshare/useFileShare.ts`](src/fileshare/useFileShare.ts) | A React hook that owns one `FileShareClient`, maps the SDK's typed lifecycle events to state, and exposes `host` / `joinByCode` / `send` / `accept` / `reject` / `leave`. |
+| [`src/fileshare/FileSharePanel.tsx`](src/fileshare/FileSharePanel.tsx) | The file-sharing UI: share via QR + short code, join by code, live peer list, file picker, progress, and incoming-file prompts. |
+| [`src/pairing.ts`](src/pairing.ts) | Builds the QR / pairing payload the SDK understands. |
+| [`src/components/QrImage.tsx`](src/components/QrImage.tsx) | Renders the pairing QR (via the `qrcode` package). |
 
-## Run locally
+Everything else (`App.tsx`, `styles.css`) is ordinary portal chrome around it.
+
+---
+
+## Architecture
+
+```
+   Student device A                 Signaling server                Student device B
+   (this portal, browser)          (pairing broker only)           (browser or mobile app)
+          │                               │                               │
+          │──── pair (QR / short code) ──►│◄──── pair ────────────────────│
+          │                               │                               │
+          │========= WebRTC data channel (peer-to-peer, on the LAN) =======│
+          │              files stream directly, device to device          │
+          ▼                                                               ▼
+                    the signaling server never sees a single file byte
+```
+
+Two pieces are involved:
+
+1. **This portal** — the frontend your institution deploys, embedding the SDK.
+2. **A signaling server** — a tiny pairing broker your institution runs on its
+   own infrastructure (provided as a Docker image; see below). It only relays
+   pairing and connection-setup messages, never files.
+
+---
+
+## Run it locally
+
+**1. Start the signaling server** (Docker):
+
+```bash
+docker compose up -d          # → ws://localhost:8080/v1/ws  (also on your LAN IP)
+```
+
+**2. Start the portal:**
 
 ```bash
 npm install
-npm run dev        # http://localhost:5180  (also exposed on your LAN IP)
+npm run dev                   # → http://localhost:5180  (also exposed on your LAN IP)
 ```
 
-You also need the **signaling server** running (from the WrapDrive repo):
+**3. Share a file (two devices on the same network):**
 
-```bash
-cd ../localsend/server && cargo run     # ws://0.0.0.0:8080
-```
+1. Open the portal on device A at `http://<your-lan-ip>:5180`.
+2. In **Campus File Share**, the signaling field auto-fills to
+   `ws://<your-lan-ip>:8080/v1/ws`.
+3. Choose **Share files → Start a session**. A QR code and a short code appear.
+4. On device B, open the same portal and choose **Join by code** (enter the
+   code), or scan the QR with a compatible mobile app.
+5. Pick files, hit **Send**, and accept on the receiver. Bytes stream directly
+   between the two devices.
 
-### Try a transfer (two devices on the same network)
+> Because transfers are LAN peer-to-peer, both devices must be on the same network.
 
-1. Open the portal on device A (e.g. `http://<your-lan-ip>:5180`).
-2. In **Campus File Share**, set the signaling server to `ws://<your-lan-ip>:8080/v1/ws`
-   (it auto-fills from the page host).
-3. Choose **Share files → Start a session**. A QR and a short code appear.
-4. On device B (phone with the WrapDrive app, or another browser opening the same
-   portal), scan the QR or choose **Join by code** and enter the code.
-5. Pick files and **Send**. Accept the prompt on the receiver. Bytes stream
-   directly between the two devices.
-
-> The transfer is LAN peer-to-peer, so both devices must be on the same network.
+---
 
 ## Deploy
 
-The portal is a static site — build and host anywhere:
+**Frontend** — it's a static site; build and host anywhere (Vercel, Netlify,
+GitHub Pages, or your campus web hosting):
 
 ```bash
-npm run build      # → dist/
-npm run preview
+npm run build                 # → dist/
 ```
 
-Deploy `dist/` to Vercel, Netlify, GitHub Pages, or campus web hosting. For a
-site served over **HTTPS**, the signaling server must be reachable over **`wss://`**
-(browsers block `ws://` from an `https://` page). Deploy the signaling server with
-TLS — the WrapDrive `server/` includes a Caddy + Let's Encrypt compose file for
-automatic HTTPS — and point the portal's signaling field at `wss://<domain>/v1/ws`.
+**Signaling server** — run the provided image on your infrastructure. For a
+portal served over **HTTPS**, the server must be reachable over **`wss://`**
+(browsers block `ws://` from an `https://` page), so put it behind a
+TLS-terminating reverse proxy and point the portal's signaling field at
+`wss://<your-domain>/v1/ws`.
 
-## Credits
+> The signaling image is published at
+> `ghcr.io/shahriar-ahmed-seam/p2p-portal-drop-signaling`. If your `docker pull`
+> needs authentication, either sign in with `docker login ghcr.io`, or make the
+> package public once in its GitHub **Package settings**.
 
-Built on [`p2p-portal-drop`](https://www.npmjs.com/package/p2p-portal-drop), part of
-the WrapDrive project (which builds on [LocalSend](https://github.com/localsend/localsend)).
+---
+
+## License
+
+MIT.

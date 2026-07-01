@@ -1,0 +1,26 @@
+# Signaling server for Campus File Share.
+#
+# File transfers are peer-to-peer over the LAN; this service only brokers the
+# initial pairing + WebRTC SDP exchange (no file bytes ever pass through it).
+# It's the p2p-portal-drop signaling relay, shipped as a prebuilt image — your
+# institution runs it on its own infrastructure.
+#
+#   docker compose up -d
+#   → ws://<this-host>:8080/v1/ws
+#
+# For a portal served over HTTPS, put this behind a TLS-terminating reverse
+# proxy (Caddy/nginx/Traefik) and expose it as wss://<domain>/v1/ws.
+
+services:
+  signaling:
+    image: ghcr.io/shahriar-ahmed-seam/p2p-portal-drop-signaling:latest
+    container_name: campus-fileshare-signaling
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      BIND_ADDRESS: "0.0.0.0"
+      PORT: "8080"
+      MAX_CONNECTIONS_PER_SOURCE: "20"
+      RATE_LIMIT: "100"
+      RATE_WINDOW_SECS: "60"

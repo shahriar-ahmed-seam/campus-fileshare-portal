@@ -1,8 +1,8 @@
 /**
  * QR / pairing payload helpers.
  *
- * The payload the host shows (as a QR code or short code) mirrors the format the
- * native WrapDrive apps scan:
+ * The payload the host shows (as a QR code or short code) mirrors the pairing
+ * payload format the p2p-portal-drop SDK understands:
  *   { v, sessionId, token, signaling: { url, tls } }
  * The `token` carries >=128 bits of CSPRNG entropy; the server only ever sees a
  * derived one-way validator, never this raw token.

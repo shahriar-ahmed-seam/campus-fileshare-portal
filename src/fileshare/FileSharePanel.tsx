@@ -140,7 +140,7 @@ export function FileSharePanel(): JSX.Element {
         <div className="card share-invite">
           <div className="invite-qr">
             <QrImage value={fs.hostPayload} />
-            <span className="qr-caption">Scan with the WrapDrive app</span>
+            <span className="qr-caption">Scan to join from a mobile device</span>
           </div>
           <div className="invite-code">
             <span className="field-label">Pairing code</span>
